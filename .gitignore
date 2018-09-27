@@ -56,3 +56,14 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# ignore pdfs
+*.pdf
+*.dat
+*.xlsx
+*.data
+*out
+*DS_Store
+*done
+*Theta45
+*checkpoint.ipynb
