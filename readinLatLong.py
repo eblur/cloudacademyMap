@@ -60,6 +60,6 @@ def get_foldernames(root='Les_Houches_Cloud_Activity/HATP_7b'):
 
     fnames = []
     for phi, theta in latlong:
-        fnames.append(root + '_Phi{}Theta{}/'.format(phi,theta))
+        fnames.append(root + '_Phi{}Theta{}/'.format(float(phi),float(theta)))
 
     return dict(zip(latlong, fnames))
