@@ -68,3 +68,6 @@ target/
 *Theta45
 *checkpoint.ipynb
 *.png
+
+# ignores added by Lia
+*.hdf5
