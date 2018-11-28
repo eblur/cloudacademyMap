@@ -316,7 +316,7 @@ def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid):
     smooth_factor = 5
     
     # Specify cross sections to plot, along with colours for each
-    colours_plot = np.array(['royalblue', 'purple', 'crimson', 'orange', 'black', 'grey', 'green', 'magenta', 'chocolate'])
+    #colours_plot = np.array(['royalblue', 'purple', 'crimson', 'orange', 'black', 'grey', 'green', 'magenta', 'chocolate'])
     
     # Initialise plot
     ax = plt.gca()    
@@ -334,7 +334,7 @@ def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid):
     for q in range(len(chemical_species)):
         
         species = chemical_species[q]  # Species to plot cross section of 
-        colour = colours_plot[q]   # Colour of cross section for plot
+        #colour = colours_plot[q]   # Colour of cross section for plot
         
         #print(species)
         
@@ -346,7 +346,8 @@ def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid):
             sigma_plt = gauss_conv(sigma_plt, sigma=smooth_factor, mode='nearest')
         
         # Plot cross section
-        plt.semilogy(wl_grid, sigma_plt, lw=0.5, alpha = 1.0, color= colour, label = species)
+        plt.semilogy(wl_grid, sigma_plt, lw=0.5, alpha = 1.0, #color= colour,
+                     label = species)
     
     plt.ylim([1.0e-28, 2.0e-18])
     plt.xlim([min(wl_grid), max(wl_grid)])
