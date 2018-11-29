@@ -345,7 +345,7 @@ def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid, savefig=False, *
             sigma_plt = gauss_conv(sigma_plt, sigma=smooth_factor, mode='nearest')
             
         # Plot cross section
-        plt.semilogy(wl_grid, sigma_plt, lw=0.5, alpha = 1.0, label = species, **kwargs)
+        plt.semilogy(wl_grid, sigma_plt, label=species, **kwargs)
     
     plt.ylim([1.0e-28, 2.0e-18])
     plt.xlim([min(wl_grid), max(wl_grid)])
@@ -400,5 +400,5 @@ if __name__ == '__main__':
     #print (H2O_cross_section)
     
     # Plot cross sections
-    plot_opacity(chemical_species, cross_sections, P, T, wl, savefig=True)
+    plot_opacity(chemical_species, cross_sections, P, T, wl, savefig=True, alpha=0.8, lw=0.5)
 
