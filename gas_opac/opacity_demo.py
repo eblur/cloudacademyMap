@@ -276,7 +276,11 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
             nu_r[k] = nu_out[k] + 0.5*(nu_out[k] - nu_out[k-1])
     
     # Initialise molecular and atomic opacity array, interpolated to model wavelength grid
-    sigma_stored = np.zeros(shape=(N_species, N_wl))
+    #sigma_stored = np.zeros(shape=(N_species, N_wl))
+    # Lia -- Making this a dictionary instead of a numpy array. It's easier to use for plotting.
+    # Later, a 2D numpy array will be faster for summing across a large number of species
+    # But for now, two dozen is not a lot.
+    sigma_stored = dict()
     
     # Evaluate temperature interpolation weighting factor
     y, w_T = T_interpolation_init(T_grid, T)  
@@ -290,11 +294,12 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
         
         # Read in log10(cross section) of specified molecule
         log_sigma = np.array(opac_file[species_q + '/log(sigma)']).astype(np.float64)      
-            
+        
         # Pre-interpolate cross section to desired P and wl grid 
         sigma_pre_T_inp = P_interpolate_wl_initialise(N_T, N_P, N_wl, log_sigma, nu_l, nu_out, nu_r, nu_opac, N_nu, x, b1, b2, calculation_mode)
-        
-        sigma_stored[q,:] = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
+
+        #sigma_stored[q,:] = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
+        sigma_stored[species_q] = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
         
         del log_sigma, sigma_pre_T_inp   # Clear raw cross section to free up memory
         
@@ -307,7 +312,7 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     
     return sigma_stored
 
-def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid):
+def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid, savefig=False, **kwargs):
     
     # Max number of species this can plot is 9 (clustered beyond that!)
     
@@ -319,53 +324,50 @@ def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid):
     #colours_plot = np.array(['royalblue', 'purple', 'crimson', 'orange', 'black', 'grey', 'green', 'magenta', 'chocolate'])
     
     # Initialise plot
-    ax = plt.gca()    
+    #ax = plt.gca()
     #ax.set_xscale("log")
     
-    xmajorLocator   = MultipleLocator(1.0)
-    xmajorFormatter = FormatStrFormatter('%.1f')
-    xminorLocator   = MultipleLocator(0.2)
+    ax = plt.subplot(111)
+    #xmajorLocator   = MultipleLocator(1.0)
+    #xmajorFormatter = FormatStrFormatter('%.1f')
+    #xminorLocator   = MultipleLocator(0.2)
     
-    ax.xaxis.set_major_locator(xmajorLocator)
-    ax.xaxis.set_major_formatter(xmajorFormatter)
-    ax.xaxis.set_minor_locator(xminorLocator)
+    #ax.xaxis.set_major_locator(xmajorLocator)
+    #ax.xaxis.set_major_formatter(xmajorFormatter)
+    #ax.xaxis.set_minor_locator(xminorLocator)
     
     # Plot each cross section
-    for q in range(len(chemical_species)):
-        
-        species = chemical_species[q]  # Species to plot cross section of 
-        #colour = colours_plot[q]   # Colour of cross section for plot
-        
-        #print(species)
-        
-        species_idx = np.where(chemical_species == species)[0][0]
-
-        sigma_plt = sigma_stored[species_idx,:]*1.0e4   # Cross section of species q at given (P,T) pair (cm^2)
+    for species in chemical_species:
+        #species_idx = np.where(chemical_species == species)[0][0]
+        sigma_plt = sigma_stored[species]*1.0e4   # Cross section of species q at given (P,T) pair (cm^2)
         
         if (smooth == True):
             sigma_plt = gauss_conv(sigma_plt, sigma=smooth_factor, mode='nearest')
-        
+            
         # Plot cross section
-        plt.semilogy(wl_grid, sigma_plt, lw=0.5, alpha = 1.0, #color= colour,
-                     label = species)
+        plt.semilogy(wl_grid, sigma_plt, lw=0.5, alpha = 1.0, label = species, **kwargs)
     
     plt.ylim([1.0e-28, 2.0e-18])
     plt.xlim([min(wl_grid), max(wl_grid)])
     plt.ylabel(r'$\mathrm{Cross \, \, Section \, \, (cm^{2})}$', fontsize = 15)
     plt.xlabel(r'$\mathrm{Wavelength} \; \mathrm{(\mu m)}$', fontsize = 15)
     
-    ax.text(min(wl_grid)*1.05, 6.0e-19, (r'$\mathrm{T = }$' + str(T) + r'$\mathrm{K \, \, P = }$' + str(P*1000) + r'$\mathrm{mbar}$'), fontsize = 14)
+    ax.text(min(wl_grid)*1.05, 6.0e-19, (r'$\mathrm{T = }$' + str(T) + \
+                                         r'$\mathrm{K \, \, P = }$' + \
+                                         str(P*1000) + r'$\mathrm{mbar}$'), fontsize = 14)
     
-    legend = plt.legend(loc='upper right', shadow=False, frameon=False, prop={'size':6}, ncol=2)
+    legend = plt.legend(loc='upper right', frameon=False, prop={'size':6}, ncol=2)
     
-    for legline in legend.legendHandles:
-        legline.set_linewidth(1.0)
-    
+    '''for legline in legend.legendHandles:
+    legline.set_linewidth(1.0)'''
+
     #plt.close()
-    #plt.show()
+    plt.show()
 
-    #plt.savefig('./cross_sections_' + str(T) + 'K_' + str(P*1000) + 'mbar.pdf', bbox_inches='tight', fmt='pdf', dpi=1000)
+    if savefig:
+        plt.savefig('./cross_sections_' + str(T) + 'K_' + str(P*1000) + 'mbar.pdf', bbox_inches='tight', fmt='pdf', dpi=1000)
 
+    return
 
 #***** Begin main program ***** 
 
@@ -398,6 +400,5 @@ if __name__ == '__main__':
     #print (H2O_cross_section)
     
     # Plot cross sections
-    plot_opacity(chemical_species, cross_sections, P, T, wl)
-    
+    plot_opacity(chemical_species, cross_sections, P, T, wl, savefig=True)
 
