@@ -364,7 +364,7 @@ def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid):
     #plt.close()
     #plt.show()
 
-    plt.savefig('./cross_sections_' + str(T) + 'K_' + str(P*1000) + 'mbar.pdf', bbox_inches='tight', fmt='pdf', dpi=1000)
+    #plt.savefig('./cross_sections_' + str(T) + 'K_' + str(P*1000) + 'mbar.pdf', bbox_inches='tight', fmt='pdf', dpi=1000)
 
 
 #***** Begin main program ***** 
