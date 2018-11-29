@@ -197,7 +197,8 @@ def T_interpolate(N_T, N_wl, sigma_pre_inp, T_grid, T, y, w_T):
             
     return sigma_inp
 
-
+# Notes from Lia:
+# Not sure what the slowest portion of the script is. I'll start with print statements
 def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     
     '''Convienient function to read in all opacities and pre-interpolate
@@ -238,6 +239,8 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
             
     # Find logarithm of desired pressure
     log_P = np.log10(P)
+
+    print("interpolating...")
     
     # If pressure below minimum, do not interpolate
     if (log_P < log_P_grid[0]):
@@ -361,12 +364,13 @@ def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid, savefig=False, *
     '''for legline in legend.legendHandles:
     legline.set_linewidth(1.0)'''
 
-    #plt.close()
     plt.show()
 
     if savefig:
         plt.savefig('./cross_sections_' + str(T) + 'K_' + str(P*1000) + 'mbar.pdf', bbox_inches='tight', fmt='pdf', dpi=1000)
 
+    plt.close()
+    
     return
 
 #***** Begin main program ***** 
@@ -396,7 +400,7 @@ if __name__ == '__main__':
     cross_sections = Extract_opacity(chemical_species, P, T, wl, opacity_treatment)   # Format: np array(N_species, N_wl) / Units: (m^2 / species)
     
     # Example: seperate H2O cross section, and print to terminal
-    H2O_cross_section = cross_sections[np.where(chemical_species=='H2O')[0][0],:]    # Format: np array(N_wl) / Units: (m^2 / molecule)
+    H2O_cross_section = cross_sections['H2O']    # Format: np array(N_wl) / Units: (m^2 / molecule)
     #print (H2O_cross_section)
     
     # Plot cross sections
