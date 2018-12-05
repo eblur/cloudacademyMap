@@ -225,7 +225,6 @@ def _get_one_PT(log_sigma, T_grid, log_P_grid, nu_opac,
 
     N_P = len(log_P_grid)              # No. of pressures in opacity files
     N_T = len(T_grid)                  # No. of temperatures in opacity files
-    N_species = len(chemical_species)  # No. of chemical species user wishes to store
 
     # Convert model wavelength grid to wavenumber grid
     nu_out = 1.0e4/wl_out    # Model wavenumber grid (cm^-1)
@@ -240,7 +239,7 @@ def _get_one_PT(log_sigma, T_grid, log_P_grid, nu_opac,
     # Look below for definitions of nu_l, nu_r
             
     # Find logarithm of desired pressure
-    new_log_P = np.log10(new_P)
+    log_P = np.log10(new_P)
 
     # If pressure below minimum, do not interpolate
     if (log_P < log_P_grid[0]):
@@ -283,13 +282,13 @@ def _get_one_PT(log_sigma, T_grid, log_P_grid, nu_opac,
             nu_r[k] = nu_out[k] + 0.5*(nu_out[k] - nu_out[k-1])'''
 
     # Evaluate temperature interpolation weighting factor
-    y, w_T = T_interpolation_init(T_grid, T)
+    y, w_T = T_interpolation_init(T_grid, new_T)
     
     sigma_pre_T_inp = P_interpolate_wl_initialise(N_T, N_P, N_wl, 
                                                   log_sigma, nu_l, nu_out, nu_r, 
                                                   nu_opac, N_nu, x, b1, b2, calculation_mode)
 
-    sigma_result = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
+    sigma_result = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, new_T, y, w_T)
 
     return sigma_result
 
@@ -311,21 +310,16 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     #***** Process molecular and atomic opacities *****#
     
     # Load molecular and atomic absorption cross sections
-    for q in range(N_species):
-            
-        species_q = chemical_species[q]     # Molecule name (defined in config.py)
+    for q in chemical_species:
         
-        log_sigma = np.array(opac_file[species_q + '/log(sigma)']).astype(np.float64)
+        log_sigma = np.array(opac_file[q + '/log(sigma)']).astype(np.float64)
 
-        sigma_stored[species_q] = _get_one_PT(log_sigma, T_grid, log_P_grid, nu_opac,
+        sigma_stored[q] = _get_one_PT(log_sigma, T_grid, log_P_grid, nu_opac,
                                               P, T, wl_out, opacity_treatment)
         
-        del log_sigma, sigma_pre_T_inp   # Clear raw cross section to free up memory
+        del log_sigma   # Clear raw cross section to free up memory
         
-        print(species_q + " done")
-    
-    # Clear up storage
-    del nu_l, nu_r, nu_out
+        print(q + " done")
     
     opac_file.close()
     
