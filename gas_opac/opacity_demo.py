@@ -200,10 +200,10 @@ def T_interpolate(N_T, N_wl, sigma_pre_inp, T_grid, T, y, w_T):
 
 ## Written by Lia
 ## To separate out reading step
-def load_db(chemical_species):
+def load_db(filename='./Opacity_database_0.01cm-1.hdf5'):
 
     print("Reading opacity database file")
-    opac_file = h5py.File('./Opacity_database_0.01cm-1.hdf5', 'r')
+    opac_file = h5py.File(filename, 'r')
 
     #***** Read in T and P grids used in opacity files*****#
     T_grid = np.array(opac_file['H2O/T'])            # H2O here simply used as dummy (same grid for all molecules)
@@ -212,14 +212,13 @@ def load_db(chemical_species):
     #***** Read in wavenumber arrays used in opacity files*****#
     nu_opac = np.array(opac_file['H2O/nu'])     # H2O here simply used as dummy (same grid for all molecules)
 
-    # Read in log10(cross section) of specified molecule
-    log_sigma = dict()
-    for q in chemical_species:
-        log_sigma[q] = np.array(opac_file[q + '/log(sigma)']).astype(np.float64)      
+    return T_grid, log_P_grid, nu_opac, opac_file
 
-    return T_grid, log_P_grid, nu_opac, log_sigma
 
-def _get_one_PT(log_sigma, T_grid, log_P_grid, new_P, new_T, wl_out, opacity_treatment):
+# Algorithm for loading cross-sections from one pressure and temperature
+# from cross-section table of a single species (log_sigma)
+def _get_one_PT(log_sigma, T_grid, log_P_grid, nu_opac, 
+                new_P, new_T, wl_out, opacity_treatment):
     
     if   (opacity_treatment == 'Opacity-sample'): calculation_mode = 1
     elif (opacity_treatment == 'Log-avg'):        calculation_mode = 2
@@ -282,6 +281,9 @@ def _get_one_PT(log_sigma, T_grid, log_P_grid, new_P, new_T, wl_out, opacity_tre
         elif (k == (N_nu-1)):
             nu_l[k] = 0.5*(nu_out[k-1] + nu_out[k])
             nu_r[k] = nu_out[k] + 0.5*(nu_out[k] - nu_out[k-1])'''
+
+    # Evaluate temperature interpolation weighting factor
+    y, w_T = T_interpolation_init(T_grid, T)
     
     sigma_pre_T_inp = P_interpolate_wl_initialise(N_T, N_P, N_wl, 
                                                   log_sigma, nu_l, nu_out, nu_r, 
@@ -297,75 +299,8 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     '''Convienient function to read in all opacities and pre-interpolate
        them onto the desired pressure, temperature, and wavelength grid'''
 
-    # First, check from config.py which opacity calculation mode is specified
-    if   (opacity_treatment == 'Opacity-sample'): calculation_mode = 1
-    elif (opacity_treatment == 'Log-avg'):        calculation_mode = 2
-    
-    T_grid, log_P_grid, nu_opac, log_sigma = load_db(chemical_species)
+    T_grid, log_P_grid, nu_opac, opac_file = load_db()
 
-    #***** Firstly, we initialise the various quantities needed for pre-interpolation*****#
-    
-    N_P = len(log_P_grid)              # No. of pressures in opacity files
-    N_T = len(T_grid)                  # No. of temperatures in opacity files
-    N_species = len(chemical_species)  # No. of chemical species user wishes to store
-
-    # Convert model wavelength grid to wavenumber grid
-    nu_out = 1.0e4/wl_out    # Model wavenumber grid (cm^-1)
-    nu_out = nu_out[::-1]    # Reverse direction, such that increases with wavenumber
-    
-    N_nu = len(nu_out)    # Number of wavenumbers on model grid
-    N_wl = len(wl_out)    # Number of wavelengths on model grid
-    
-    # Initialise arrays of wavenumber locations of left and right bin edges
-    #nu_l = np.zeros(N_nu)   # Left edge
-    #nu_r = np.zeros(N_nu)   # Right edge
-    # Look below for definitions of nu_l, nu_r
-            
-    # Find logarithm of desired pressure
-    log_P = np.log10(P)
-
-    print("interpolating...")
-
-    # If pressure below minimum, do not interpolate
-    if (log_P < log_P_grid[0]):
-        x = -1      # Special value (1) used in opacity inialiser
-        w_P = 0.0
-    # If pressure above maximum, do not interpolate
-    elif (log_P >= log_P_grid[-1]):
-        x = -2      # Special value (2) used in opacity inialiser
-        w_P = 0.0
-    else:
-        # Closest P indicies in opacity grid corresponding to model pressure
-        x = prior_index_V2(log_P, log_P_grid[0], log_P_grid[-1], N_P)
-        # Weights - fractional distance along pressure axis of sigma array
-        w_P = (log_P-log_P_grid[x])/(log_P_grid[x+1]-log_P_grid[x])     
-            
-    # Precalculate interpolation pre-factors to reduce computation overhead
-    b1 = (1.0-w_P)
-    b2 = w_P  
-    
-    # Find wavenumber indicies in arrays of model grid
-    # Vectorized by Lia
-    nu_edges = np.append(nu_out[0] - (nu_out[1] - nu_out[0]), 
-                         nu_out)
-    nu_edges = np.append(nu_edges, nu_out[-1] + (nu_out[-1] - nu_out[-2]))
-    nu_l = 0.5 * (nu_edges[:-2] + nu_edges[1:-1])
-    nu_r = 0.5 * (nu_edges[1:-1] +  nu_edges[2:])
-    
-    '''for k in range(N_nu):
-        
-        if (k != 0) and (k != (N_nu-1)):    
-            nu_l[k] = 0.5*(nu_out[k-1] + nu_out[k])
-            nu_r[k] = 0.5*(nu_out[k] + nu_out[k+1])
-        
-        # Special case for boundary values
-        elif (k == 0): 
-            nu_l[k] = nu_out[k] - 0.5*(nu_out[k+1] - nu_out[k])
-            nu_r[k] = 0.5*(nu_out[k] + nu_out[k+1])
-        elif (k == (N_nu-1)):
-            nu_l[k] = 0.5*(nu_out[k-1] + nu_out[k])
-            nu_r[k] = nu_out[k] + 0.5*(nu_out[k] - nu_out[k-1])'''
-    
     # Initialise molecular and atomic opacity array, interpolated to model wavelength grid
     #sigma_stored = np.zeros(shape=(N_species, N_wl))
     # Lia -- Making this a dictionary instead of a numpy array. It's easier to use for plotting.
@@ -373,9 +308,6 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     # But for now, two dozen is not a lot.
     sigma_stored = dict()
     
-    # Evaluate temperature interpolation weighting factor
-    y, w_T = T_interpolation_init(T_grid, T)  
-        
     #***** Process molecular and atomic opacities *****#
     
     # Load molecular and atomic absorption cross sections
@@ -383,12 +315,10 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
             
         species_q = chemical_species[q]     # Molecule name (defined in config.py)
         
-        lsigma = log_sigma[species_q]
-        # Pre-interpolate cross section to desired P and wl grid 
-        sigma_pre_T_inp = P_interpolate_wl_initialise(N_T, N_P, N_wl, lsigma, nu_l, nu_out, nu_r, nu_opac, N_nu, x, b1, b2, calculation_mode)
+        log_sigma = np.array(opac_file[species_q + '/log(sigma)']).astype(np.float64)
 
-        #sigma_stored[q,:] = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
-        sigma_stored[species_q] = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
+        sigma_stored[species_q] = _get_one_PT(log_sigma, T_grid, log_P_grid, nu_opac,
+                                              P, T, wl_out, opacity_treatment)
         
         del log_sigma, sigma_pre_T_inp   # Clear raw cross section to free up memory
         
