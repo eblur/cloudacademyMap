@@ -197,24 +197,14 @@ def T_interpolate(N_T, N_wl, sigma_pre_inp, T_grid, T, y, w_T):
             
     return sigma_inp
 
-# Notes from Lia:
-# Not sure what the slowest portion of the script is. I'll start with print statements
 def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     
     '''Convienient function to read in all opacities and pre-interpolate
        them onto the desired pressure, temperature, and wavelength grid'''
-    
-    print("Now reading in cross sections")
-    
-    # First, check from config.py which opacity calculation mode is specified
-    if   (opacity_treatment == 'Opacity-sample'): calculation_mode = 1
-    elif (opacity_treatment == 'Log-avg'):        calculation_mode = 2
-    
-    #***** Firstly, we initialise the various quantities needed for pre-interpolation*****#
-    
-    # Open HDF5 files containing molecular + atomic opacities and CIA
+
+    print("Reading opacity database file")
     opac_file = h5py.File('./Opacity_database_0.01cm-1.hdf5', 'r')
-    
+
     #***** Read in T and P grids used in opacity files*****#
     T_grid = np.array(opac_file['H2O/T'])            # H2O here simply used as dummy (same grid for all molecules)
     log_P_grid = np.array(opac_file['H2O/log(P)'])   # Units: log10(P/bar)!
@@ -222,6 +212,12 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     #***** Read in wavenumber arrays used in opacity files*****#
     nu_opac = np.array(opac_file['H2O/nu'])     # H2O here simply used as dummy (same grid for all molecules)
 
+    # First, check from config.py which opacity calculation mode is specified
+    if   (opacity_treatment == 'Opacity-sample'): calculation_mode = 1
+    elif (opacity_treatment == 'Log-avg'):        calculation_mode = 2
+    
+    #***** Firstly, we initialise the various quantities needed for pre-interpolation*****#
+    
     N_P = len(log_P_grid)              # No. of pressures in opacity files
     N_T = len(T_grid)                  # No. of temperatures in opacity files
     N_species = len(chemical_species)  # No. of chemical species user wishes to store
@@ -234,37 +230,42 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     N_wl = len(wl_out)    # Number of wavelengths on model grid
     
     # Initialise arrays of wavenumber locations of left and right bin edges
-    nu_l = np.zeros(N_nu)   # Left edge
-    nu_r = np.zeros(N_nu)   # Right edge
+    #nu_l = np.zeros(N_nu)   # Left edge
+    #nu_r = np.zeros(N_nu)   # Right edge
+    # Look below for definitions of nu_l, nu_r
             
     # Find logarithm of desired pressure
     log_P = np.log10(P)
 
     print("interpolating...")
-    
+
     # If pressure below minimum, do not interpolate
     if (log_P < log_P_grid[0]):
         x = -1      # Special value (1) used in opacity inialiser
         w_P = 0.0
-        
     # If pressure above maximum, do not interpolate
     elif (log_P >= log_P_grid[-1]):
         x = -2      # Special value (2) used in opacity inialiser
         w_P = 0.0
-        
     else:
         # Closest P indicies in opacity grid corresponding to model pressure
         x = prior_index_V2(log_P, log_P_grid[0], log_P_grid[-1], N_P)
-        
         # Weights - fractional distance along pressure axis of sigma array
         w_P = (log_P-log_P_grid[x])/(log_P_grid[x+1]-log_P_grid[x])     
-         
+            
     # Precalculate interpolation pre-factors to reduce computation overhead
     b1 = (1.0-w_P)
     b2 = w_P  
-        
+    
     # Find wavenumber indicies in arrays of model grid
-    for k in range(N_nu):
+    # Vectorized by Lia
+    nu_edges = np.append(nu_out[0] - (nu_out[1] - nu_out[0]), 
+                         nu_out)
+    nu_edges = np.append(nu_edges, nu_out[-1] + (nu_out[-1] - nu_out[-2]))
+    nu_l = 0.5 * (nu_edges[:-2] + nu_edges[1:-1])
+    nu_r = 0.5 * (nu_edges[1:-1] +  nu_edges[2:])
+    
+    '''for k in range(N_nu):
         
         if (k != 0) and (k != (N_nu-1)):    
             nu_l[k] = 0.5*(nu_out[k-1] + nu_out[k])
@@ -276,7 +277,7 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
             nu_r[k] = 0.5*(nu_out[k] + nu_out[k+1])
         elif (k == (N_nu-1)):
             nu_l[k] = 0.5*(nu_out[k-1] + nu_out[k])
-            nu_r[k] = nu_out[k] + 0.5*(nu_out[k] - nu_out[k-1])
+            nu_r[k] = nu_out[k] + 0.5*(nu_out[k] - nu_out[k-1])'''
     
     # Initialise molecular and atomic opacity array, interpolated to model wavelength grid
     #sigma_stored = np.zeros(shape=(N_species, N_wl))
