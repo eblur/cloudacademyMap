@@ -197,10 +197,10 @@ def T_interpolate(N_T, N_wl, sigma_pre_inp, T_grid, T, y, w_T):
             
     return sigma_inp
 
-def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
-    
-    '''Convienient function to read in all opacities and pre-interpolate
-       them onto the desired pressure, temperature, and wavelength grid'''
+
+## Written by Lia
+## To separate out reading step
+def load_db(chemical_species):
 
     print("Reading opacity database file")
     opac_file = h5py.File('./Opacity_database_0.01cm-1.hdf5', 'r')
@@ -212,10 +212,24 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     #***** Read in wavenumber arrays used in opacity files*****#
     nu_opac = np.array(opac_file['H2O/nu'])     # H2O here simply used as dummy (same grid for all molecules)
 
+    # Read in log10(cross section) of specified molecule
+    log_sigma = dict()
+    for q in chemical_species:
+        log_sigma[q] = np.array(opac_file[q + '/log(sigma)']).astype(np.float64)      
+
+    return T_grid, log_P_grid, nu_opac, log_sigma
+
+def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
+    
+    '''Convienient function to read in all opacities and pre-interpolate
+       them onto the desired pressure, temperature, and wavelength grid'''
+
     # First, check from config.py which opacity calculation mode is specified
     if   (opacity_treatment == 'Opacity-sample'): calculation_mode = 1
     elif (opacity_treatment == 'Log-avg'):        calculation_mode = 2
     
+    T_grid, log_P_grid, nu_opac, log_sigma = load_db(chemical_species)
+
     #***** Firstly, we initialise the various quantities needed for pre-interpolation*****#
     
     N_P = len(log_P_grid)              # No. of pressures in opacity files
@@ -296,11 +310,9 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
             
         species_q = chemical_species[q]     # Molecule name (defined in config.py)
         
-        # Read in log10(cross section) of specified molecule
-        log_sigma = np.array(opac_file[species_q + '/log(sigma)']).astype(np.float64)      
-        
+        lsigma = log_sigma[species_q]
         # Pre-interpolate cross section to desired P and wl grid 
-        sigma_pre_T_inp = P_interpolate_wl_initialise(N_T, N_P, N_wl, log_sigma, nu_l, nu_out, nu_r, nu_opac, N_nu, x, b1, b2, calculation_mode)
+        sigma_pre_T_inp = P_interpolate_wl_initialise(N_T, N_P, N_wl, lsigma, nu_l, nu_out, nu_r, nu_opac, N_nu, x, b1, b2, calculation_mode)
 
         #sigma_stored[q,:] = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
         sigma_stored[species_q] = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
