@@ -219,6 +219,79 @@ def load_db(chemical_species):
 
     return T_grid, log_P_grid, nu_opac, log_sigma
 
+def _get_one_PT(log_sigma, T_grid, log_P_grid, new_P, new_T, wl_out, opacity_treatment):
+    
+    if   (opacity_treatment == 'Opacity-sample'): calculation_mode = 1
+    elif (opacity_treatment == 'Log-avg'):        calculation_mode = 2
+
+    N_P = len(log_P_grid)              # No. of pressures in opacity files
+    N_T = len(T_grid)                  # No. of temperatures in opacity files
+    N_species = len(chemical_species)  # No. of chemical species user wishes to store
+
+    # Convert model wavelength grid to wavenumber grid
+    nu_out = 1.0e4/wl_out    # Model wavenumber grid (cm^-1)
+    nu_out = nu_out[::-1]    # Reverse direction, such that increases with wavenumber
+    
+    N_nu = len(nu_out)    # Number of wavenumbers on model grid
+    N_wl = len(wl_out)    # Number of wavelengths on model grid
+    
+    # Initialise arrays of wavenumber locations of left and right bin edges
+    #nu_l = np.zeros(N_nu)   # Left edge
+    #nu_r = np.zeros(N_nu)   # Right edge
+    # Look below for definitions of nu_l, nu_r
+            
+    # Find logarithm of desired pressure
+    new_log_P = np.log10(new_P)
+
+    # If pressure below minimum, do not interpolate
+    if (log_P < log_P_grid[0]):
+        x = -1      # Special value (1) used in opacity inialiser
+        w_P = 0.0
+    # If pressure above maximum, do not interpolate
+    elif (log_P >= log_P_grid[-1]):
+        x = -2      # Special value (2) used in opacity inialiser
+        w_P = 0.0
+    else:
+        # Closest P indicies in opacity grid corresponding to model pressure
+        x = prior_index_V2(log_P, log_P_grid[0], log_P_grid[-1], N_P)
+        # Weights - fractional distance along pressure axis of sigma array
+        w_P = (log_P-log_P_grid[x])/(log_P_grid[x+1]-log_P_grid[x])     
+            
+    # Precalculate interpolation pre-factors to reduce computation overhead
+    b1 = (1.0-w_P)
+    b2 = w_P  
+    
+    # Find wavenumber indicies in arrays of model grid
+    # Vectorized by Lia
+    nu_edges = np.append(nu_out[0] - (nu_out[1] - nu_out[0]), 
+                         nu_out)
+    nu_edges = np.append(nu_edges, nu_out[-1] + (nu_out[-1] - nu_out[-2]))
+    nu_l = 0.5 * (nu_edges[:-2] + nu_edges[1:-1])
+    nu_r = 0.5 * (nu_edges[1:-1] +  nu_edges[2:])
+    
+    '''for k in range(N_nu):
+        
+        if (k != 0) and (k != (N_nu-1)):    
+            nu_l[k] = 0.5*(nu_out[k-1] + nu_out[k])
+            nu_r[k] = 0.5*(nu_out[k] + nu_out[k+1])
+        
+        # Special case for boundary values
+        elif (k == 0): 
+            nu_l[k] = nu_out[k] - 0.5*(nu_out[k+1] - nu_out[k])
+            nu_r[k] = 0.5*(nu_out[k] + nu_out[k+1])
+        elif (k == (N_nu-1)):
+            nu_l[k] = 0.5*(nu_out[k-1] + nu_out[k])
+            nu_r[k] = nu_out[k] + 0.5*(nu_out[k] - nu_out[k-1])'''
+    
+    sigma_pre_T_inp = P_interpolate_wl_initialise(N_T, N_P, N_wl, 
+                                                  log_sigma, nu_l, nu_out, nu_r, 
+                                                  nu_opac, N_nu, x, b1, b2, calculation_mode)
+
+    sigma_result = T_interpolate(N_T, N_wl, sigma_pre_T_inp, T_grid, T, y, w_T)
+
+    return sigma_result
+
+
 def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     
     '''Convienient function to read in all opacities and pre-interpolate
