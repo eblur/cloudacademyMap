@@ -3,6 +3,8 @@
 # V1.0: Evaluates cross sections at a single P,T point (8th November 2018)
 # V2.0: Evaluates cross sections on a grid of (P,T) points (6th december 2018)
 
+# 2018.12.06 - Modified slightly by liac@umich.edu
+
 import numpy as np
 import h5py
 from scipy.ndimage import gaussian_filter1d as gauss_conv
@@ -322,7 +324,9 @@ def Extract_opacity(chemical_species, P_out, T_out, wl_out, opacity_treatment):
         z_r[k] = closest_index(nu_r[k], nu_grid[0], nu_grid[-1], N_nu)
         
     # Initialise molecular and atomic opacity array, interpolated to output (P,T,wl) grid
-    sigma_stored = np.zeros(shape=(N_species, N_P_out, N_T_out, N_wl_out))
+    # Lia - modified to use a dictionary instead (easier for reference in her codes)
+    #sigma_stored = np.zeros(shape=(N_species, N_P_out, N_T_out, N_wl_out))
+    sigma_stored = dict()
     
     # Evaluate temperature interpolation weighting factor
     y = np.zeros(N_T_out, dtype=np.int)
@@ -342,7 +346,8 @@ def Extract_opacity(chemical_species, P_out, T_out, wl_out, opacity_treatment):
         sigma_pre_inp = P_interpolate_wl_initialise(nu_grid, N_P_out, N_T, N_P, N_wl_out, N_nu_out, log_sigma, x, z_l, z, z_r, b1, b2, calculation_mode)
                 
         # Interplate to desired temperature
-        sigma_stored[q,:,:,:] = T_interpolate(N_P_out, N_T_out, N_T, N_wl_out, sigma_pre_inp, T_grid, T_out, y, w_T)
+        #sigma_stored[q,:,:,:] = T_interpolate(N_P_out, N_T_out, N_T, N_wl_out, sigma_pre_inp, T_grid, T_out, y, w_T)
+        sigma_stored[q] = T_interpolate(N_P_out, N_T_out, N_T, N_wl_out, sigma_pre_inp, T_grid, T_out, y, w_T)
         
         del log_sigma, sigma_pre_inp   # Clear raw cross section to free up memory
         
@@ -411,9 +416,10 @@ def plot_opacity(chemical_species, sigma_stored, P_desired, T_desired, wl_grid):
     #plt.close()
     #plt.show()
 
-    plt.savefig('./cross_sections_' + str(T_desired) + 'K_' + str(P_desired*1000) + 'mbar.pdf', bbox_inches='tight', fmt='pdf', dpi=1000)
+    #plt.savefig('./cross_sections_' + str(T_desired) + 'K_' + str(P_desired*1000) + 'mbar.pdf', bbox_inches='tight', fmt='pdf', dpi=1000)
 
 
+"""
 #***** Begin main program ***** 
     
 # Specify which molecules you want to extract from the database (full list available in the readme)
@@ -452,4 +458,4 @@ H2O_cross_section = cross_sections[(np.where(chemical_species=='H2O')[0][0]),P_i
 
 # Plot cross sections at the desired P and T
 plot_opacity(chemical_species, cross_sections[:,P_idx,T_idx,:], P_desired, T_desired, wl)
-
+"""
