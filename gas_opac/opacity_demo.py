@@ -325,6 +325,46 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     
     return sigma_stored
 
+# Written by Lia for a set of (p,T) values
+def Extract_opacity_PTpairs(chemical_species, P, T, wl_out, opacity_treatment):
+    
+    '''Convienient function to read in all opacities and pre-interpolate
+       them onto the desired pressure, temperature, and wavelength grid'''
+
+    assert len(P) == len(T)
+
+    T_grid, log_P_grid, nu_opac, opac_file = load_db()
+
+    # Initialise molecular and atomic opacity array, interpolated to model wavelength grid
+    #sigma_stored = np.zeros(shape=(N_species, N_wl))
+    # Lia -- Making this a dictionary instead of a numpy array. It's easier to use for plotting.
+    # Later, a 2D numpy array will be faster for summing across a large number of species
+    # But for now, two dozen is not a lot.
+    sigma_stored = dict()
+    
+    #***** Process molecular and atomic opacities *****#
+    
+    # Load molecular and atomic absorption cross sections
+    for q in chemical_species:
+        
+        log_sigma = np.array(opac_file[q + '/log(sigma)']).astype(np.float64)
+        
+        result = np.zeros(shape=(len(P), len(wl_out)))
+        for i in range(len(P)):
+             result[i,:] = _get_one_PT(log_sigma, T_grid, log_P_grid, nu_opac,
+                                       P[i], T[i], wl_out, opacity_treatment)
+        
+        sigma_stored[q] = result
+        
+        del log_sigma   # Clear raw cross section to free up memory
+        
+        print(q + " done")
+    
+    opac_file.close()
+    
+    return sigma_stored
+
+
 def plot_opacity(chemical_species, sigma_stored, P, T, wl_grid, savefig=False, **kwargs):
     
     # Max number of species this can plot is 9 (clustered beyond that!)
