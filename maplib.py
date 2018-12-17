@@ -109,11 +109,12 @@ def read_file(fname, skip_lines=3):
     names = np.genfromtxt(fname,delimiter='',skip_header=hstart,comments='#',dtype=None,encoding=None)
     data = np.genfromtxt(fname,delimiter='',skip_header=dstart,comments='#',dtype=None,encoding=None)
     
-    keys = names[0] #column names
-    values = [data[:,i] for i in range(len(keys))]
-    data_dict = dict(zip(keys,values))
-            
-    return data_dict 
+    keys   = names[0]
+    values = dict()
+    for k, i in zip(keys, range(len(keys))):
+            values[k] = np.array([data[j][i] for j in range(len(data))])
+    
+    return values
 
 # ---- Contents of column.py (liac@umich.edu)
 
@@ -298,8 +299,7 @@ def load_out3(type, lon, lat, root=FOLDER_ROOT):
         return get_wavel(extfile)
     else:
         fname = froot.format(lon, lat, type)
-        if type == 'dist': return read_file(fname, skip_lines=2)
-        else: return read_file(fname)
+        return read_file(fname)
 
 ## ---- Added 2018.11.24
 
