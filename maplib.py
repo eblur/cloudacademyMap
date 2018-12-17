@@ -87,7 +87,7 @@ def get_foldernames(root=FOLDER_ROOT):
 
 # ---- Contents of read_file.py (munazza.alam@cfa.harvard.edu)
 
-def read_file(fname):
+def read_file(fname, skip_lines=3):
     '''
     Read in static_weather output files & write data values to a dictionary
     
@@ -103,9 +103,11 @@ def read_file(fname):
         data columns from input file 
     '''
     
-    #read in static_weather output file 
-    names = np.genfromtxt(fname,delimiter='',skip_header=3,comments='#',dtype=None,encoding=None)
-    data = np.genfromtxt(fname,delimiter='',skip_header=4,comments='#',dtype=None,encoding=None)
+    #read in static_weather output file
+    hstart = skip_lines
+    dstart = skip_lines + 1
+    names = np.genfromtxt(fname,delimiter='',skip_header=hstart,comments='#',dtype=None,encoding=None)
+    data = np.genfromtxt(fname,delimiter='',skip_header=dstart,comments='#',dtype=None,encoding=None)
     
     keys = names[0] #column names
     values = [data[:,i] for i in range(len(keys))]
@@ -296,7 +298,8 @@ def load_out3(type, lon, lat, root=FOLDER_ROOT):
         return get_wavel(extfile)
     else:
         fname = froot.format(lon, lat, type)
-        return read_file(fname)
+        if type == 'dist': return read_file(fname, skip_lines=2)
+        else: return read_file(fname)
 
 ## ---- Added 2018.11.24
 
