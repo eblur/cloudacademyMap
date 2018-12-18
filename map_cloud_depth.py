@@ -7,6 +7,7 @@
 # 2018.09.26 - Modified by L. R. Corrales (liac@umich.edu)
 # To map the cloud depth (distance from top, where dust tau=1)
 # 2018.11.09 - Modified to use maplib
+# 2018.12.18 - Show pressure instead of cloud depth
 
 # Requires:
 # ---------
@@ -43,7 +44,7 @@ Teff = 2700.0 # eff/eq temperature
 
 OUTPUT_DIR = 'Cloud_Opt_Depth/'
 
-MAX_DEPTH = 10000 # km
+p_convert = 1.e-6 # bar / (dyne/cm^2)
 
 ## ---- Load the data
 
@@ -65,11 +66,8 @@ NLO, NLA, NWA = len(lons), len(lats), len(wavel)
 Z = np.zeros((NLO, NLA, NWA))
 for i in range(NLO):
     for j in range(NLA):
-        w, d = cloud_depth(stringy(lons[i]), stringy(lats[j]))
-        Z[i,j,:] = d
-
-# The 180 longitude is same as -180
-#Z[0,:,:] = Z[-1,:,:]
+        w, d = cloud_depth(stringy(lons[i]), stringy(lats[j]), p_val=True)
+        Z[i,j,:] = d * p_convert
 
 ## ---- Mapping and plotting part
 
@@ -78,9 +76,10 @@ X, Y = np.meshgrid(lons,lats)
 
 # Default contour levels to use
 nlev = 21
-lev  = np.linspace(0, MAX_DEPTH, nlev)
+log_pmin, log_pmax = -6, 3
+lev  = np.linspace(log_pmin, log_pmax, nlev)
 
-def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r, log=False):
+def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
     """
     Makes a plot of HAT-P-7b cloud depth at some wavelength
     
@@ -95,9 +94,6 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r, log=False):
     cmap : matplotlib.pyplot.colormap object
         Color map to use
 
-    log : bool --> Not implemented as of now!!
-        If True, uses logarithmically spaced colorbar
-
     Returns
     -------
     Results of Basemap.contourf for the northern hemisphere of the planet
@@ -105,11 +101,12 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r, log=False):
     Also produces a plot.
     """
     m        = Basemap(projection='kav7', lon_0=0, resolution=None)
-    CS_north = m.contourf(X, Y, Z[:,:,i].T,
+    CS_north = m.contourf(X, Y, np.log10(Z[:,:,i].T),
                           levels=levels, extend='both', cmap=cmap, latlon=True)
-    CS_south = m.contourf(X, -Y, Z[:,:,i].T,
+    CS_south = m.contourf(X, -Y, np.log10(Z[:,:,i].T),
                           levels=levels, extend='both', cmap=cmap, latlon=True)
-    plt.colorbar(label='Cloud Depth (km)')
+    
+    plt.colorbar(label='log Depth (bar)', ticks=np.arange(log_pmin+1, log_pmax+1)[::2], orientation='horizontal')
     plt.title('{:.1f} $\mu$m'.format(wavel[i]))
     
     ## -- Plot lat-lon lines on map
