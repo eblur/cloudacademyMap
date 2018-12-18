@@ -201,7 +201,7 @@ def cumulative_integral(z, ext):
         result[i,:] = trapz(ext[:i+1,:], z2d[:i+1,:], axis=0)
     return result
 
-def cloud_depth(lon, lat, tau=1.0):
+def cloud_depth(lon, lat, tau=1.0, p_val=True):
     """
     Calculates the depth (distance from top of atmosphere) for which
     the cloud opacity becomes optically thick (tau=1) or hits some
@@ -217,6 +217,10 @@ def cloud_depth(lon, lat, tau=1.0):
 
     tau : float  (Default: 1.0)
         Target tau value
+
+    p_val : bool
+        if True, returns the pressure value at the desired tau value
+        if False, returns the vertical distance at the desired tau value
 
     Returns
     -------
@@ -235,18 +239,23 @@ def cloud_depth(lon, lat, tau=1.0):
     wavel = get_wavel(extfile)
     tau_z = cumulative_integral(z, dtau_dz)
 
-    #depth_km = calc_cloud_depth(z, tau_z, tau=1.0) * 1.e-5 # km
+    # Interpolate to the appropriate 'z' or 'p' value depending on the p_val flag
+    x = z
+    if p_val:
+        thermo = read_file(zfile)
+        x = thermo['p']
     
-    # interpolate over the cumulative integral to get the depth at
-    # which tau reaches the desired threshold
+    # Interpolate over the cumulative integral to get the depth at
+    # which tau reaches the desired threshold.  In some cases, the
+    # integrated optical depth never reaches the target value. This
+    # will return z[-1] (the deepest part of the atmosphere).
     result = []
     for i in range(len(tau_z[0])):
-        tau_interp = interp1d(tau_z[:,i], z, 
-                              fill_value=(z[0], z[-1]), bounds_error=False) #^(1)
+        tau_interp = interp1d(tau_z[:,i], x, 
+                              fill_value=(x[0], x[-1]), bounds_error=False) #^(1)
         result.append(tau_interp(tau))
-    # (1) In some cases, the integrated optical depth never reaches the target value
-    # Return z[-1] (the deepest part of the atmosphere) in that case
-    return wavel, np.array(result) * 1.e-5 # micron, km
+
+    return wavel, np.array(result) # micron, cm (or dyne/cm^2)
 
 ## ---- Convenience function for formatting latitudes and longitudes
 
