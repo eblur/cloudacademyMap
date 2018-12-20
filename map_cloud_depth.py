@@ -106,7 +106,9 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
     CS_south = m.contourf(X, -Y, np.log10(Z[:,:,i].T),
                           levels=levels, extend='both', cmap=cmap, latlon=True)
     
-    plt.colorbar(label='log Depth (bar)', ticks=np.arange(log_pmin+1, log_pmax+1)[::2], orientation='horizontal')
+    plt.colorbar(label=r'$\tau(\lambda) = 1$ [log bar]',
+                 ticks=np.arange(log_pmin+1, log_pmax+1)[::2],
+                 orientation='horizontal')
     plt.title('{:.1f} $\mu$m'.format(wavel[i]))
     
     ## -- Plot lat-lon lines on map
