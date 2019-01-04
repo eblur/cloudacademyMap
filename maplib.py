@@ -315,7 +315,10 @@ def load_out3(type, lon, lat, root=FOLDER_ROOT):
 # Returns the adjusted rho_d column, so that
 # rho_d = 0 when there are no dust grains (a = 0)
 def get_rhod(lon, lat):
-    dust = load_out3('dust', lon, lat)
+    dust   = load_out3('dust', lon, lat)
     thermo = load_out3('thermo', lon, lat)
-    return dust['rhod/rho'] * thermo['rho']
+    result = dust['rhod/rho'] * thermo['rho']
+    izero  = (np.log10(result) < -99.)
+    result[izero] = 0.0
+    return result
 
