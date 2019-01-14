@@ -200,10 +200,11 @@ def T_interpolate(N_T, N_wl, sigma_pre_inp, T_grid, T, y, w_T):
 
 ## Written by Lia
 ## To separate out reading step
-def load_db(filename='./Opacity_database_0.01cm-1.hdf5'):
+def load_db(filename='Opacity_database_0.01cm-1.hdf5', root='./'):
 
+    open_filename = root + filename
     print("Reading opacity database file")
-    opac_file = h5py.File(filename, 'r')
+    opac_file = h5py.File(open_filename, 'r')
 
     #***** Read in T and P grids used in opacity files*****#
     T_grid = np.array(opac_file['H2O/T'])            # H2O here simply used as dummy (same grid for all molecules)
@@ -326,14 +327,14 @@ def Extract_opacity(chemical_species, P, T, wl_out, opacity_treatment):
     return sigma_stored
 
 # Written by Lia for a set of (p,T) values
-def Extract_opacity_PTpairs(chemical_species, P, T, wl_out, opacity_treatment):
+def Extract_opacity_PTpairs(chemical_species, P, T, wl_out, opacity_treatment, root='./'):
     
     '''Convienient function to read in all opacities and pre-interpolate
        them onto the desired pressure, temperature, and wavelength grid'''
 
     assert len(P) == len(T)
 
-    T_grid, log_P_grid, nu_opac, opac_file = load_db()
+    T_grid, log_P_grid, nu_opac, opac_file = load_db(root=root)
 
     # Initialise molecular and atomic opacity array, interpolated to model wavelength grid
     #sigma_stored = np.zeros(shape=(N_species, N_wl))
