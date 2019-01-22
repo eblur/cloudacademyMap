@@ -164,7 +164,7 @@ def map_atm_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
     plt.colorbar(label=r'$\tau(\lambda) = 1$ [log bar]',
                  #ticks=np.arange(log_pmin+1, log_pmax+1)[::2],
                  orientation='horizontal')
-    plt.title('{:.1f} $\mu$m'.format(wavel[i]))
+    plt.title('{:.2f} $\mu$m'.format(wavel[i]))
     
     ## -- Plot lat-lon lines on map
     # String formatting function
@@ -187,6 +187,6 @@ def map_atm_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
 
 for i in range(len(wavel)):
     map_atm_depth(i)
-    plt.savefig(out_root + 'atm_depth_{:.1f}um.pdf'.format(wavel[i]))
+    plt.savefig(out_root + 'atm_depth_{:.2f}um.pdf'.format(wavel[i]))
     plt.clf()
 

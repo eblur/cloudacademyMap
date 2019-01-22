@@ -125,7 +125,7 @@ X, Y = np.meshgrid(lons,lats)
 
 # Default contour levels to use
 nlev = 21
-log_pmin, log_pmax = 1.0, np.log10(200.)
+log_pmin, log_pmax = 0.0, np.log10(200)
 lev  = np.linspace(log_pmin, log_pmax, nlev)
 
 def map_gas_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
@@ -155,7 +155,7 @@ def map_gas_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
     plt.colorbar(label=r'$\tau(\lambda) = 1$ [log bar]',
                  #ticks=np.arange(log_pmin+1, log_pmax+1)[::2],
                  orientation='horizontal')
-    plt.title('{:.1f} $\mu$m'.format(wavel[i]))
+    plt.title('{:.2f} $\mu$m'.format(wavel[i]))
     
     ## -- Plot lat-lon lines on map
     # String formatting function
@@ -178,6 +178,6 @@ def map_gas_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
 
 for i in range(len(wavel)):
     map_gas_depth(i)
-    plt.savefig(out_root + 'gas_depth_{:.1f}um.pdf'.format(wavel[i]))
+    plt.savefig(out_root + 'gas_depth_{:.2f}um.pdf'.format(wavel[i]))
     plt.clf()
 
