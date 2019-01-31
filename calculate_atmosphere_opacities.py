@@ -50,9 +50,10 @@ def calc_dtau_dz(gas, opac_dict, thermo):
     NP  = len(n_z) # number of vertical data points
     NWL = len(sigma[0,:]) # number of wavelengths
     
+    # sigma is in units of m^2
     result = np.zeros(shape=(NP, NWL))
     for i in range(NP):
-        result[i,:] = n_z[i] * sigma[i,:] # cm^-1
+        result[i,:] = n_z[i] * (sigma[i,:] * 1.e4) # cm^-1
 
     return result
 
