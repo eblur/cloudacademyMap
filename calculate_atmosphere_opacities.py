@@ -30,7 +30,7 @@ LATS  = np.arange(0., 67.51, 22.5) # deg
 # Grabbed from Readme.txt
 RMcD_gas = np.array(['H3+', 'Na', 'K', 'Li', 'Rb', 'Cs', 'H2', 'H2O', 'CH4', 'NH3', 'HCN', 'CO', \
                      'CO2', 'C2H2', 'H2S', 'N2', 'O2', 'O3', 'OH', 'NO', 'SO2', 'PH3', 'TiO', 'VO', \
-                     'ALO', 'SiO', 'CaO', 'TiH', 'CrH', 'FeH', 'ScH', 'AlH', 'SiH', 'BeH', 'CaH', \
+                     'AlO', 'SiO', 'CaO', 'TiH', 'CrH', 'FeH', 'ScH', 'AlH', 'SiH', 'BeH', 'CaH', \
                      'MgH', 'LiH', 'SiH', 'CH', 'SH', 'NH'])
 
 RMcD_gas_upper = np.array([g.upper() for g in RMcD_gas]) 
@@ -81,22 +81,31 @@ def run_calculation(lon, lat):
     database and saves them to a file.
     """
     # Open the out3_thermo.dat file for a given sight line and grab all of the gases listed
-    thermo = load_out3('thermo', lon, lat, root=DATA_DIR)
-    thermo_gas = []
-    for k in thermo.keys():
-        x = k.split('n_')
-        if len(x) == 2:
-            thermo_gas.append(x[1])
+    #thermo = load_out3('thermo', lon, lat, root=DATA_DIR)
+    c1 = load_out3('chem1', lon, lat, root=DATA_DIR)
+    c2 = load_out3('chem2', lon, lat, root=DATA_DIR)
+    c3 = load_out3('chem3', lon, lat, root=DATA_DIR)
+    Ch_gas = []
+    for chem in [c1, c2, c3]:
+        for k in chem.keys():
+            if k not in ['z','p','T','n<H>']:
+                Ch_gas.append(k)
+
     gases, gases_missing = [], []
-    for g in thermo_gas:
-        if g in RMcD_gas_upper:
-            ig = np.where(RMcD_gas_upper == g)[0]
+    for g in Ch_gas:
+        g_up = g.upper()
+        if g_up in RMcD_gas_upper:
+            ig = np.where(RMcD_gas_upper == g_up)[0]
             gases.append(RMcD_gas[ig][0])
         else:
             gases_missing.append(g)
 
+    print("Gases missing: ", gases_missing)
+    print("Gases found: ", gases)
+
     # Grab the relevant wavelengths
-    wavel = load_out3('wavel', lon, lat)
+    wavel = load_out3('wavel', lon, lat, root=DATA_DIR)
+    thermo = load_out3('thermo', lon, lat, root=DATA_DIR)
 
     # Get the opacities for each gas (loaded into a dictionary)
     opacities = demo.Extract_opacity_PTpairs(np.array(gases), thermo['p'], thermo['T'], wavel,
