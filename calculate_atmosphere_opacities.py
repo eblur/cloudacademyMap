@@ -40,11 +40,11 @@ OPACITY_TREATMENT = 'Log-avg'
 #--------
 # Supporting functions
 
-def calc_dtau_dz(gas, opac_dict, thermo):
+def calc_dtau_dz(gas, opac_dict, ch_dict):
     """
     Calculate dtau/dz for all available gases in the atmosphere.
     """
-    n_z = thermo['n_' + gas.upper()]
+    n_z   = ch_dict[gas.upper()]
     sigma = opac_dict[gas]
     
     NP  = len(n_z) # number of vertical data points
@@ -86,10 +86,12 @@ def run_calculation(lon, lat):
     c2 = load_out3('chem2', lon, lat, root=DATA_DIR)
     c3 = load_out3('chem3', lon, lat, root=DATA_DIR)
     Ch_gas = []
+    Ch_dens = {}
     for chem in [c1, c2, c3]:
         for k in chem.keys():
             if k not in ['z','p','T','n<H>']:
                 Ch_gas.append(k)
+                Ch_dens[k.upper()] = chem[k] # cm^-3
 
     gases, gases_missing = [], []
     for g in Ch_gas:
@@ -113,7 +115,7 @@ def run_calculation(lon, lat):
     
     dtau_dz = dict()
     for g in gases:
-            dtau_dz[g] = calc_dtau_dz(g, opacities, thermo)
+            dtau_dz[g] = calc_dtau_dz(g, opacities, Ch_dens)
 
     # Save the files for this calculation
     fname = OUT_DIR + 'Phi{:.1f}Theta{:.1f}_dtau_dz.fits'.format(lon, lat)
