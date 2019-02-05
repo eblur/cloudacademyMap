@@ -64,10 +64,13 @@ wavel = get_wavel(wavel_file) # um
 # Make a 3D array with dimensions (lon, lat, wavel)
 NLO, NLA, NWA = len(lons), len(lats), len(wavel)
 Z = np.zeros((NLO, NLA, NWA))
-for i in range(NLO):
-    for j in range(NLA):
+for i in np.arange(NLO)[:-1]:
+    for j in np.arange(NLA):
         w, d = cloud_depth(stringy(lons[i]), stringy(lats[j]), p_val=True)
         Z[i,j,:] = d * p_convert
+
+# Force +180 slice to equal -180        
+Z[-1,:,:] = np.copy(Z[0,:,:])
 
 ## ---- Mapping and plotting part
 
@@ -109,7 +112,7 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
     plt.colorbar(label=r'$\tau(\lambda) = 1$ [log bar]',
                  ticks=np.arange(log_pmin+1, log_pmax+1)[::2],
                  orientation='horizontal')
-    plt.title('{:.1f} $\mu$m'.format(wavel[i]))
+    plt.title('{:.2f} $\mu$m'.format(wavel[i]))
     
     ## -- Plot lat-lon lines on map
     # String formatting function
@@ -132,7 +135,7 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
 ## Plot everything and save it, if running this file as a script
 
 def save_plot(i, root_string=OUTPUT_DIR+'cloud_depth_', verbose=True):
-    filename = root_string + '{:.1f}um.pdf'.format(wavel[i])
+    filename = root_string + '{:.2f}um.pdf'.format(wavel[i])
     if verbose:
         print("Saving map to file: {}".format(filename))
     

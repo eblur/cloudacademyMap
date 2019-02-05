@@ -124,17 +124,20 @@ wavel = load_out3('wavel', lons[0], lats[0], root=file_root)
 
 NLO, NLA, NWA = len(lons), len(lats), len(wavel)
 Z = np.zeros((NLO, NLA, NWA))
-for i in range(NLO):
-    for j in range(NLA):
-        d = atmosphere_depth(lons[i], lats[j]) # bar
+for i in np.arange(NLO)[:-1]:
+    for j in np.arange(NLA):
+        d = atmosphere_depth(lons[i], lats[j], tau=1.0) # bar
         Z[i,j,:] = d
+
+# Make +180 slice equal to -180        
+Z[-1,:,:] = np.copy(Z[0,:,:])
 
 # Mesh grid to use for the map
 X, Y = np.meshgrid(lons,lats)
 
 # Default contour levels to use
 nlev = 21
-log_pmin, log_pmax = -6.0, 3.0
+log_pmin, log_pmax = -6, 3
 lev  = np.linspace(log_pmin, log_pmax, nlev)
 
 def map_atm_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
@@ -162,7 +165,7 @@ def map_atm_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
                           levels=levels, extend='both', cmap=cmap, latlon=True)
     
     plt.colorbar(label=r'$\tau(\lambda) = 1$ [log bar]',
-                 #ticks=np.arange(log_pmin+1, log_pmax+1)[::2],
+                 ticks=np.arange(log_pmin+1, log_pmax+1)[::2],
                  orientation='horizontal')
     plt.title('{:.2f} $\mu$m'.format(wavel[i]))
     
