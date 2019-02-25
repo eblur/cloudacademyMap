@@ -79,7 +79,7 @@ X, Y = np.meshgrid(lons,lats)
 
 # Default contour levels to use
 nlev = 21
-log_pmin, log_pmax = -6, 3
+log_pmin, log_pmax = -6, 3.0
 lev  = np.linspace(log_pmin, log_pmax, nlev)
 
 def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
@@ -108,10 +108,24 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
                           levels=levels, extend='both', cmap=cmap, latlon=True)
     CS_south = m.contourf(X, -Y, np.log10(Z[:,:,i].T),
                           levels=levels, extend='both', cmap=cmap, latlon=True)
-    
-    plt.colorbar(label=r'log $p_{\rm gas}(\tau_{\rm cloud}(\lambda) = 1)$ [bar]',
-                 ticks=np.arange(log_pmin+1, log_pmax+1)[::2],
-                 orientation='horizontal')
+
+    # grey out areas that hit an upper limit
+    logZmax = 2.2 # max pressure to cut off
+    cmap2 = plt.cm.binary
+    levels2 = np.array([-3, 3])
+    Z2    = np.ma.masked_where(np.log10(Z[:,:,i]) < logZmax, np.log10(Z[:,:,i]))
+    CS2   = m.contourf(X, Y, Z2.T,
+                       levels=levels2, extend='both', cmap=cmap2, latlon=True)
+    CS2   = m.contourf(X, -Y, Z2.T,
+                       levels=levels2, extend='both', cmap=cmap2, latlon=True)
+
+    for c in CS_north.collections:
+        c.set_edgecolor("face")
+
+    CB = plt.colorbar(CS_north, label=r'log $p_{\rm gas}(\tau_{\rm cloud}(\lambda) = 1)$ [bar]',
+                      ticks=np.arange(log_pmin+1, log_pmax+1)[::2],
+                      orientation='horizontal')
+
     plt.title('{:.2f} $\mu$m'.format(wavel[i]))
     
     ## -- Plot lat-lon lines on map
