@@ -40,7 +40,7 @@ colors = {'CO':'green', 'CH4':'gray', 'SIO':'xkcd:sky',
           'CS':'#cccccc',  # light grey
           'VO':'#dd1c77',  # bright pink
           'SIH':'#54278f', # deep purple
-          'ALO':'#ffffb3', # banana
+          'ALO':'#de2d26', # dark red
           'LI':'#b3de69'   # grass green
           }
 
@@ -123,8 +123,7 @@ def plot_depth(ax, ll, keys, wavel, ylim):
     ax.set_xlabel(r'$\lambda$ [$\mu$m]')
     ax.set_ylabel(r'$p_{\rm gas}(\tau_{v,x}(\lambda) = 1)$ [bar]')
     ax.set_ylim(ylim)
-    ax.set_xlim(0.3, 49.0)
-    ax.legend(loc='upper right', frameon=False, ncol=3)
+    ax.set_xlim(0.4, 49.0)
     return
 
 ##--------------------
@@ -154,6 +153,9 @@ for i in range(len(titles)):
         ax.yaxis.set_ticklabels([])
     if i in [0,1]:
         ax.set_xlabel('')
+    if i == 3: # the only one with all the elements listed
+        ax.legend(loc='upper right', frameon=False, ncol=3)
+
 
 plt.tight_layout()
 plt.savefig("gas_opacity_wavel.png", format='png')
