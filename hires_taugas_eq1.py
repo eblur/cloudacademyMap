@@ -136,8 +136,8 @@ dtau_dz_g_0 = read_opac_file(infile0) # dtau/dz for each gas
 
 YLIM = [0.1, 3.e-6]
 
-fig = plt.figure(figsize=(35.6, 4.8))
-gs  = GridSpec(1, 4, wspace=0.03)
+fig = plt.figure(figsize=(12.8, 9.6))
+gs  = GridSpec(2, 2, wspace=0.03)
 
 titles = ['Anti-stellar point',
           r'Morning terminator ($\theta = 0^{\circ}$)',
@@ -149,9 +149,11 @@ for i in range(len(titles)):
     ax = plt.subplot(gs[i])
     plot_depth(ax, LLS[i], list(dtau_dz_g_0.keys()), WGRID, YLIM)
     ax.set_title(titles[i])
-    if i in [1,2,3]:
+    if i in [1,3]:
         ax.set_ylabel('')
         ax.yaxis.set_ticklabels([])
+    if i in [0,1]:
+        ax.set_xlabel('')
 
 plt.tight_layout()
 plt.savefig("gas_opacity_wavel.png", format='png')
