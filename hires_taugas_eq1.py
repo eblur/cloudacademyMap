@@ -23,26 +23,50 @@ import astropy.units as u
 from maplib import load_out3, cumulative_integral, cloud_depth
 from calculate_hires_opacities import WGRID, LLS
 
+
 # Set up paths
 HOME_DIR = os.environ['HOME'] + '/Dropbox/Science/cloud-academy/Les_Houches_Cloud_Activity/'
 INP_DIR  = HOME_DIR + 'Gas_Ext/hires_'
 
 # Set up colors
-colors = {'CO':'green', 'CH4':'gray', 'SIO':'xkcd:sky', 
+'''colors = {'CO':'green', 'CH4':'gray', 'SIO':'xkcd:sky', 
           'H':'red', 'H2S':'xkcd:sun yellow', 'FE':'brown', 
-          'TIO':'blue', 'K':'orange', # up to here: from NI in "conventions" doc
-          'CO2':'#2ca25f', # green hue
+          'TIO':'blue', 'K':'orange', # up to here: from NI in "conventions" doc; from here: using color schemes inspired by Fig 8 (cloud type groupings)
+          'VO':'#2c7fb8',  # Metals: Ocean blue to light blue/green
+          'ALO':'#41b6c4', 
+          'CO2':'#2ca25f', 
           'H2O':'#2c7fb8', # dusty blue
           'NA':'#756bb1',  # grey-purple
           'OH':'#980043',  # deep magenta,
           'MGH':'#fcae91', # peach
           'ALH':'#e34a33', # burnt orange
           'CS':'#cccccc',  # light grey
-          'VO':'#dd1c77',  # bright pink
           'SIH':'#54278f', # deep purple
-          'ALO':'#de2d26', # dark red
           'LI':'#b3de69'   # grass green
           }
+'''
+# Choose a color scheme inspired by Fig 8
+colors = {'TIO':'#91003f',  # Metals: Dark magenta to pink
+          'VO':'#ce1256',  
+          'ALO':'#e7298a', 
+          'ALH':'#df65b0', 
+          'SIO':'#a63603', # Silicate related stuff (Si, Mg, O): burnt orange to yellow
+          'SIH':'#e6550d', 
+          'MGH':'#fd8d3c', 
+          'H2O':'#0c2c84', # Volatiles: Ocean blue to light blue/green
+          'CO2':'#225ea8', 
+          'CO':'#1d91c0', 
+          'CH4':'#41b6c4', 
+          'OH':'#7fcdbb',
+          'H2S':'#c7e9b4', 
+          'CS':'xkcd:sun yellow',
+          'H':'#252525',       # Individual atoms: black/grey/purple
+          'FE':'#525252', 
+          'K':'#54278f', 
+          'NA':'#756bb1',
+          'LI':'#cbc9e2'
+          }
+
 
 labels = {'H2O':'H$_2$O', 'CO2':'CO$_2$', 'SIO':'SiO', 
           'ALH':'AlH', 'ALO':'AlO', 'MGH':'MgH', 'FEH':'FeH', 
@@ -105,7 +129,9 @@ def plot_depth(ax, ll, keys, wavel, ylim):
     for k in keys:
         print(k)
         atm_depth = atmosphere_depth(ll[0], ll[1], keys=[k])
-        if np.min(atm_depth) < ylim[0]:
+        test = True
+        #test = np.min(atm_depth) < ylim[0]
+        if test:
             lbl = k
             if k in list(labels.keys()): lbl = labels[k]
             if k in list(colors.keys()):
@@ -116,12 +142,12 @@ def plot_depth(ax, ll, keys, wavel, ylim):
     # Plot the cloud depth
     p_unit = u.dyne / u.cm**2
     w, cld_depth = cloud_depth('{:.1f}'.format(ll[0]), '{:.1f}'.format(ll[1]), p_val=True)
-    ax.plot(w, cld_depth * p_unit.to(u.bar), alpha=0.5, color='k', lw=3, label='Clouds')
+    ax.plot(w, cld_depth * p_unit.to(u.bar), color='k', ls='--', lw=3, label='Clouds')
 
     ax.set_yscale('log')
     ax.set_xscale('log')
     ax.set_xlabel(r'$\lambda$ [$\mu$m]')
-    ax.set_ylabel(r'$p_{\rm gas}(\tau_{v,x}(\lambda) = 1)$ [bar]')
+    ax.set_ylabel(r'$p_{\rm gas}(\tau_{x}(\lambda) = 1)$ [bar]')
     ax.set_ylim(ylim)
     ax.set_xlim(0.4, 49.0)
     return
@@ -143,18 +169,23 @@ titles = ['Anti-stellar point',
           'Sub-stellar point', 
           r'Evening terminator ($\theta = 0^{\circ}$)']
 
+#KEYS_TO_PLOT = list(dtau_dz_g_0.keys())
+KEYS_TO_PLOT = ['H2O','CO','OH','H2S','TIO','VO','ALO','ALH','SIO','MGH','CS','K','NA','LI']
+
 for i in range(len(titles)):
     print("Running {}".format(titles[i]))
     ax = plt.subplot(gs[i])
-    plot_depth(ax, LLS[i], list(dtau_dz_g_0.keys()), WGRID, YLIM)
+    plot_depth(ax, LLS[i], KEYS_TO_PLOT, WGRID, YLIM)
     ax.set_title(titles[i])
     if i in [1,3]:
         ax.set_ylabel('')
         ax.yaxis.set_ticklabels([])
     if i in [0,1]:
         ax.set_xlabel('')
-    if i == 3: # the only one with all the elements listed
-        ax.legend(loc='upper right', frameon=False, ncol=3)
+    if i in [2,3]:
+        ax.set_ylim(1.0, 3.e-6)
+    if i == 2: # the only one with all the elements listed
+        ax.legend(loc='upper right', frameon=False, ncol=4)
 
 
 plt.tight_layout()
