@@ -118,7 +118,7 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
     logZmax = np.max(np.log10(pres)) # max pressure to cut off
     cmap2 = plt.cm.binary
     levels2 = np.array([-3, 3])
-    Z2    = np.ma.masked_where(np.log10(Z[:,:,i]) <= logZmax, np.log10(Z[:,:,i]))
+    Z2    = np.ma.masked_where(np.log10(Z[:,:,i]) < logZmax, np.log10(Z[:,:,i]))
     CS2   = m.contourf(X, Y, Z2.T,
                        levels=levels2, extend='both', cmap=cmap2, latlon=True)
     CS2   = m.contourf(X, -Y, Z2.T,
