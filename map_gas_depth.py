@@ -18,7 +18,7 @@ import astropy.units as u
 from maplib import load_out3, cumulative_integral
 
 file_root = 'static_weather_results/HATP_7b' # root name for profile folders
-gas_root  = 'Gas_Ext/' # root name for gas opacity (dtau/dz) files
+gas_root  = 'dtau-dz/' # root name for gas opacity (dtau/dz) files
 out_root  = 'Cloud_Opt_Depth/' # root name for output files
 
 # Function for reading in the gas opacity file 
