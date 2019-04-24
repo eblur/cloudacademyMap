@@ -36,7 +36,7 @@ import matplotlib.cm as cm
 from mpl_toolkits.basemap import Basemap
 from matplotlib.colors import LogNorm
 
-from maplib import get_wavel, cloud_depth, stringy
+from maplib import get_wavel, cloud_depth, stringy, load_out3
 
 file_root = 'static_weather_results/HATP_7b' # root name for profile folders
 nlay  = 53 # number of vertical layers
@@ -82,6 +82,10 @@ nlev = 21
 log_pmin, log_pmax = -6, 3.0
 lev  = np.linspace(log_pmin, log_pmax, nlev)
 
+# Get pressure values for reference
+pdata = load_out3('thermo', lons[0], lats[0])
+pres  = pdata['p'] * p_convert # pressure (bar)
+
 def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
     """
     Makes a plot of HAT-P-7b cloud depth at some wavelength
@@ -110,10 +114,11 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
                           levels=levels, extend='both', cmap=cmap, latlon=True)
 
     # grey out areas that hit an upper limit
-    logZmax = 2.2 # max pressure to cut off
+    #logZmax = 2.2 # max pressure to cut off
+    logZmax = np.max(np.log10(pres)) # max pressure to cut off
     cmap2 = plt.cm.binary
     levels2 = np.array([-3, 3])
-    Z2    = np.ma.masked_where(np.log10(Z[:,:,i]) < logZmax, np.log10(Z[:,:,i]))
+    Z2    = np.ma.masked_where(np.log10(Z[:,:,i]) <= logZmax, np.log10(Z[:,:,i]))
     CS2   = m.contourf(X, Y, Z2.T,
                        levels=levels2, extend='both', cmap=cmap2, latlon=True)
     CS2   = m.contourf(X, -Y, Z2.T,
