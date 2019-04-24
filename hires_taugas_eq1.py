@@ -10,6 +10,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import NullFormatter, MultipleLocator, FormatStrFormatter
 
 # Plotting settings
 from matplotlib import rcParams
@@ -47,7 +48,8 @@ INP_DIR  = HOME_DIR + 'Gas_Ext/hires_'
 '''
 # Choose a color scheme inspired by Fig 8
 colors = {'TIO':'#91003f',  # Metals: Dark magenta to pink
-          'VO':'#ce1256',  
+          #'VO':'#ce1256',  
+          'VO':'magenta',
           'ALO':'#e7298a', 
           'ALH':'#df65b0', 
           'SIO':'#a63603', # Silicate related stuff (Si, Mg, O): burnt orange to yellow
@@ -57,21 +59,27 @@ colors = {'TIO':'#91003f',  # Metals: Dark magenta to pink
           'CO2':'#225ea8', 
           'CO':'#1d91c0', 
           'CH4':'#41b6c4', 
+          'FEH': 'limegreen',
           'OH':'#7fcdbb',
           'H2S':'#c7e9b4', 
           'CS':'xkcd:sun yellow',
           'H':'#252525',       # Individual atoms: black/grey/purple
-          'FE':'#525252', 
+          'FE':'crimson', 
+          'TI':'royalblue',
           'K':'#54278f', 
           'NA':'#756bb1',
-          'LI':'#cbc9e2'
+          'LI':'#cbc9e2',
+          'H2-H2': 'black',
+          'H2-HE': 'dimgrey',
+          'H-': 'darkgreen'
           }
 
-
-labels = {'H2O':'H$_2$O', 'CO2':'CO$_2$', 'SIO':'SiO', 
+labels = {'H2O':'H$_2$O', 'CO2':'CO$_2$', 'CH4':'CH$_4$', 
+          'C2H2':'C$_2$H$_2$', 'NH3':'NH$_3$', 'SIO':'SiO', 
           'ALH':'AlH', 'ALO':'AlO', 'MGH':'MgH', 'FEH':'FeH', 
-          'H2S':'H$_2$S', 'TIO':'TiO', 'CAH':'CaH', 'NA':'Na', 
-          'LI':'Li', 'SIH':'SiH'}
+          'H2S':'H$_2$S', 'TIO':'TiO', 'CAH':'CaH', 'NA':'Na',
+          'LI':'Li', 'SIH':'SiH', 'H2-H2':'H$_2$-H$_2$',
+          'H2-HE':'H$_2$-He', 'H-':'H-', 'FE':'Fe'}
 
 def read_opac_file(filename):
     """
@@ -91,7 +99,7 @@ def read_opac_file(filename):
 def sum_ext(opac_dict, keys=None):
     """Sum the extinction opacities from a dictionary of dtau/dz
 
-    Paremeters
+    Parameters
     ----------
     opac_dict : dict
         Contains key-value pairs of chemical species with dtau/dz
@@ -143,13 +151,25 @@ def plot_depth(ax, ll, keys, wavel, ylim):
     p_unit = u.dyne / u.cm**2
     w, cld_depth = cloud_depth('{:.1f}'.format(ll[0]), '{:.1f}'.format(ll[1]), p_val=True)
     ax.plot(w, cld_depth * p_unit.to(u.bar), color='k', ls='--', lw=3, label='Clouds')
+    
+    xmajorLocator   = MultipleLocator(2.0)
+    xmajorFormatter = FormatStrFormatter('%.1f')
+    #xminorLocator   = MultipleLocator(0.2)
+    xminorFormatter = NullFormatter()
 
     ax.set_yscale('log')
     ax.set_xscale('log')
+    
+    ax.xaxis.set_major_locator(xmajorLocator)
+    ax.xaxis.set_major_formatter(xmajorFormatter)
+    #ax.xaxis.set_minor_locator(xminorLocator)
+    ax.xaxis.set_minor_formatter(xminorFormatter)
+    
     ax.set_xlabel(r'$\lambda$ [$\mu$m]')
     ax.set_ylabel(r'$p_{\rm gas}(\tau_{x}(\lambda) = 1)$ [bar]')
     ax.set_ylim(ylim)
-    ax.set_xlim(0.4, 49.0)
+    ax.set_xlim(0.4, 50.0)
+    ax.set_xticks([0.4, 1, 2, 4, 6, 10, 20, 40])
     return
 
 ##--------------------
@@ -159,7 +179,8 @@ infile0 = INP_DIR + 'Phi{:.1f}Theta{:.1f}_dtau_dz.fits'.format(LLS[0][0], LLS[0]
 dtau_dz_g_0 = read_opac_file(infile0) # dtau/dz for each gas
 
 
-YLIM = [0.1, 3.e-6]
+
+YLIM = [10.0, 1.0e-5]
 
 fig = plt.figure(figsize=(12.8, 9.6))
 gs  = GridSpec(2, 2, wspace=0.03)
@@ -170,7 +191,7 @@ titles = ['Anti-stellar point',
           r'Evening terminator ($\theta = 0^{\circ}$)']
 
 #KEYS_TO_PLOT = list(dtau_dz_g_0.keys())
-KEYS_TO_PLOT = ['H2O','CO','OH','H2S','TIO','VO','ALO','ALH','SIO','MGH','CS','K','NA','LI']
+KEYS_TO_PLOT = ['H2O','CO','CO2','CS','TIO','VO','SIO','OH','FEH','ALH','MGH','H2S','NA','K','FE','TI','H2-H2', 'H2-HE','H-']
 
 for i in range(len(titles)):
     print("Running {}".format(titles[i]))
@@ -183,11 +204,11 @@ for i in range(len(titles)):
     if i in [0,1]:
         ax.set_xlabel('')
     if i in [2,3]:
-        ax.set_ylim(1.0, 3.e-6)
+        ax.set_ylim(10.0, 3.e-6)
     if i == 2: # the only one with all the elements listed
-        ax.legend(loc='upper right', frameon=False, ncol=4)
+        ax.legend(loc='upper right', frameon=False, ncol=5)
 
 
-plt.tight_layout()
-plt.savefig("gas_opacity_wavel.png", format='png')
+#plt.tight_layout()
+plt.savefig('./gas_opacity_wavel.png', format='png', dpi=500)
 #plt.show()

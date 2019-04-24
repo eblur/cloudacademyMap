@@ -14,7 +14,7 @@ import numpy as np
 from astropy.io import fits
 
 from maplib import load_out3, cumulative_integral
-import opacity_demo as demo
+import opacity_NEW as opac
 
 import calculate_atmosphere_opacities as cao
 
@@ -26,6 +26,7 @@ DB_DIR   = os.environ['HOME'] + '/dev/cloudacademyMap/gas_opac/'
 
 # Make some pointers for easy reference
 RMcD_gas = cao.RMcD_gas
+RMcD_cia = cao.RMcD_cia
 RMcD_gas_upper = cao.RMcD_gas_upper
 OPACITY_TREATMENT = cao.OPACITY_TREATMENT
 
@@ -33,7 +34,8 @@ OPACITY_TREATMENT = cao.OPACITY_TREATMENT
 LLS   = [(-180.,0.), (-90.,0.), (0.,0.), (90.,0.)] # deg
 
 # Wavelength grid to use
-WGRID = np.logspace(np.log10(0.3), 2.0, 1000) # um
+WGRID = cao.wavel_grid_constant_R(0.4, 50.0, 1000.0)  # um
+#WGRID = np.logspace(np.log10(0.3), 2.0, 1000) # um
 
 def run_hires_calculation(lon, lat, wavel=WGRID):
     """
@@ -68,14 +70,34 @@ def run_hires_calculation(lon, lat, wavel=WGRID):
     print("Gases missing: ", gases_missing)
     print("Gases found: ", gases)
 
-    # Get the opacities for each gas (loaded into a dictionary)
     thermo = load_out3('thermo', lon, lat, root=DATA_DIR)
-    opacities = demo.Extract_opacity_PTpairs(np.array(gases), thermo['p'], thermo['T'], wavel,
-                                             OPACITY_TREATMENT, root=DB_DIR)
+    
+    # Convert electron pressure (dyn cm^-2) into electron number density (cm^-3)
+    n_e = thermo['pel']/(1.38066e-16 * thermo['T'])   # Hard coded value is Boltzmann constant in cgs
+    P = thermo['p']*1.0e-6                            # Convert pressure to bar (expected in opacitiy functions)
+    T = thermo['T']
+    
+    # Array listing CIA pair names
+    cia_pairs = RMcD_cia
+    
+    # Get the opacities for each gas (loaded into a dictionary)
+    cross_sections, CIA, H_minus_bf, H_minus_ff  = opac.Extract_opacity_NEW(np.array(gases), cia_pairs, P, T, 
+                                                                            wavel, OPACITY_TREATMENT, root=DB_DIR)
+    #opacities = demo.Extract_opacity_PTpairs(np.array(gases), thermo['p'], thermo['T'], wavel,
+    #                                         OPACITY_TREATMENT, root=DB_DIR)
     
     dtau_dz = dict()
+    
+    # First add normal gas cross sections
     for g in gases:
-            dtau_dz[g] = cao.calc_dtau_dz(g, opacities, Ch_dens)
+        dtau_dz[g] = cao.calc_dtau_dz_gas(g, cross_sections, Ch_dens)
+        
+    # Secondly, add CIA opacities
+    for pair in cia_pairs:
+        dtau_dz[pair] = cao.calc_dtau_dz_CIA(pair, CIA, Ch_dens)
+        
+    # Finally, add contributions from both sources of H- opacity
+    dtau_dz['H-'] = cao.calc_dtau_dz_H_minus(H_minus_bf, H_minus_ff, n_e, Ch_dens)
 
     # Save the files for this calculation
     fname = OUT_DIR + 'Phi{:.1f}Theta{:.1f}_dtau_dz.fits'.format(lon, lat)
