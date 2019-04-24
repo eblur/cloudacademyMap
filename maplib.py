@@ -6,7 +6,7 @@
 ## Created 2018.11.08 - liac@umich.edu
 ##
 ## Requirements:
-##    numpy, scipy, glob, re
+##    numpy, scipy, glob, re, astropy
 ##
 ## All packages can be installed using conda
 ##---------------------------------------------------------------------
@@ -17,6 +17,8 @@ import re
 
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
+
+from astropy.table import Table
 
 # Change this string to match your directory structure
 FOLDER_ROOT = 'static_weather_results/HATP_7b'
@@ -106,15 +108,20 @@ def read_file(fname, skip_lines=3):
     #read in static_weather output file
     hstart = skip_lines
     dstart = skip_lines + 1
+    # I switched to using astropy because of version issues
+    '''
     names = np.genfromtxt(fname,delimiter='',skip_header=hstart,comments='#',dtype=None,encoding=None)
     data = np.genfromtxt(fname,delimiter='',skip_header=dstart,comments='#',dtype=None,encoding=None)
-    
+
     keys   = names[0]
     values = dict()
     for k, i in zip(keys, range(len(keys))):
             values[k] = np.array([data[j][i] for j in range(len(data))])
     
     return values
+    '''
+    result = Table.read(fname, format='ascii', header_start=hstart-1)
+    return result
 
 # ---- Contents of column.py (liac@umich.edu)
 
@@ -252,7 +259,8 @@ def cloud_depth(lon, lat, tau=1.0, p_val=True):
     result = []
     for i in range(len(tau_z[0])):
         tau_interp = interp1d(tau_z[:,i], x, 
-                              fill_value=(x[0], x[-1]), bounds_error=False) #^(1)
+                              fill_value=(1.e-10, 1.e10), bounds_error=False)
+                              #fill_value=(x[0], x[-1]), bounds_error=False)
         result.append(tau_interp(tau))
 
     return wavel, np.array(result) # micron, cm (or dyne/cm^2)

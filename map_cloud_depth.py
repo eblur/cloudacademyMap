@@ -108,16 +108,16 @@ def map_cloud_depth(i, levels=lev, cmap=plt.cm.RdYlBu_r):
     Also produces a plot.
     """
     m        = Basemap(projection='kav7', lon_0=0, resolution=None)
+    #print(np.log10(Z[:,:,i]))
     CS_north = m.contourf(X, Y, np.log10(Z[:,:,i].T),
                           levels=levels, extend='both', cmap=cmap, latlon=True)
     CS_south = m.contourf(X, -Y, np.log10(Z[:,:,i].T),
                           levels=levels, extend='both', cmap=cmap, latlon=True)
 
     # grey out areas that hit an upper limit
-    #logZmax = 2.2 # max pressure to cut off
     logZmax = np.max(np.log10(pres)) # max pressure to cut off
     cmap2 = plt.cm.binary
-    levels2 = np.array([-3, 3])
+    levels2 = np.array([3.,5.]) # not reaching tau=1 results in p(bar) = 10^4
     Z2    = np.ma.masked_where(np.log10(Z[:,:,i]) < logZmax, np.log10(Z[:,:,i]))
     CS2   = m.contourf(X, Y, Z2.T,
                        levels=levels2, extend='both', cmap=cmap2, latlon=True)
